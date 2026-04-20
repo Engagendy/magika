@@ -2,6 +2,12 @@
 
 Community `.NET 9` wrapper for Magika using a thin Rust native shim.
 
+## Install
+
+```bash
+dotnet add package Engagendy.Magika.Native
+```
+
 ## Package contents
 
 - Managed wrapper assembly for `.NET 9`
