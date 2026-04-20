@@ -132,6 +132,72 @@ Console.WriteLine(json);
 
 For ASP.NET uploads, prefer `IdentifyBytesJson` when you already have the file in memory, and `IdentifyPathJson` when you save uploads to disk first.
 
+### Typed DTO example
+
+If you do not want to work with raw `JsonDocument`, deserialize Magika's JSON into DTOs:
+
+```csharp
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Magika.Native;
+
+public sealed record MagikaResponse(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("kind")] string? Kind,
+    [property: JsonPropertyName("score")] double? Score,
+    [property: JsonPropertyName("info")] MagikaTypeInfo? Info,
+    [property: JsonPropertyName("contentType")] MagikaTypeInfo? ContentType,
+    [property: JsonPropertyName("error")] string? Error);
+
+public sealed record MagikaTypeInfo(
+    [property: JsonPropertyName("label")] string? Label,
+    [property: JsonPropertyName("mimeType")] string? MimeType,
+    [property: JsonPropertyName("group")] string? Group,
+    [property: JsonPropertyName("description")] string? Description,
+    [property: JsonPropertyName("extensions")] string[]? Extensions,
+    [property: JsonPropertyName("isText")] bool? IsText);
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSingleton<MagikaSession>();
+
+var app = builder.Build();
+
+app.MapPost("/upload-typed", async (IFormFile file, MagikaSession magika) =>
+{
+    if (file.Length == 0)
+    {
+        return Results.BadRequest("Empty file.");
+    }
+
+    await using var stream = file.OpenReadStream();
+    using var memory = new MemoryStream();
+    await stream.CopyToAsync(memory);
+
+    string json = magika.IdentifyBytesJson(memory.ToArray());
+    MagikaResponse? result = JsonSerializer.Deserialize<MagikaResponse>(json);
+
+    if (result is null)
+    {
+        return Results.Problem("Failed to deserialize Magika response.");
+    }
+
+    if (!result.Ok)
+    {
+        return Results.BadRequest(new { result.Error });
+    }
+
+    return Results.Ok(new
+    {
+        file.FileName,
+        result.Info?.Label,
+        result.Info?.MimeType,
+        result.Score
+    });
+});
+
+app.Run();
+```
+
 ### Upload example: classify `IFormFile` in memory
 
 This is the simplest path for a typical upload endpoint:
