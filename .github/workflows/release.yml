@@ -8,6 +8,11 @@ on:
         required: true
         default: false
         type: boolean
+      version:
+        description: Package version to use when running manually, for example 0.1.4
+        required: false
+        default: ""
+        type: string
   push:
     tags:
       - "v*"
@@ -109,11 +114,27 @@ jobs:
           set -euo pipefail
           find dotnet/Magika.Native/runtimes -type f | sort
 
+      - name: Resolve package version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          elif [[ -n "${{ inputs.version }}" ]]; then
+            version="${{ inputs.version }}"
+          else
+            echo "A package version is required for manual runs. Provide workflow input 'version' or publish from a v* tag."
+            exit 1
+          fi
+
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+          echo "Resolved package version: $version"
+
       - name: Pack NuGet
         shell: bash
         run: |
           set -euo pipefail
-          dotnet pack dotnet/Magika.Native/Magika.Native.csproj -c Release
+          dotnet pack dotnet/Magika.Native/Magika.Native.csproj -c Release -p:Version="$PACKAGE_VERSION"
 
       - name: Upload NuGet package
         uses: actions/upload-artifact@v4

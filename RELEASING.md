@@ -19,7 +19,7 @@ Before packing manually, copy the compiled native artifacts into the project-loc
 ## Manual pack
 
 ```bash
-dotnet pack dotnet/Magika.Native/Magika.Native.csproj -c Release
+dotnet pack dotnet/Magika.Native/Magika.Native.csproj -c Release -p:Version=0.1.3
 ```
 
 Outputs:
@@ -51,3 +51,10 @@ Before using the publish job:
 ## Publish behavior
 
 The workflow publishes automatically on `v*` tags, or manually through `workflow_dispatch` when the `publish` input is set to `true`.
+
+For tag-driven releases, the package version is derived from the tag name:
+
+- `v0.1.3` -> NuGet package version `0.1.3`
+- `v0.1.4` -> NuGet package version `0.1.4`
+
+For manual workflow runs, provide the `version` input explicitly.

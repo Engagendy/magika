@@ -90,6 +90,7 @@ Artifacts:
 ## Release
 
 NuGet packages are built and published through GitHub Actions in `.github/workflows/release.yml`.
+The published package version is derived from the Git tag, so tag `v0.1.3` publishes NuGet package version `0.1.3`.
 
 Current published runtime targets:
 
