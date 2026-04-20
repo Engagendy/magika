@@ -101,9 +101,11 @@ The workflow is at `.github/workflows/release.yml`.
 
 It does three things:
 
-- builds native binaries on GitHub-hosted runners for `linux-x64`, `win-x64`, `osx-x64`, and `osx-arm64`
+- builds native binaries on GitHub-hosted runners for `linux-x64`, `win-x64`, and `osx-arm64`
 - packs the NuGet package with the generated `runtimes/<RID>/native` assets
 - optionally publishes the package to `nuget.org`
+
+`osx-x64` is intentionally excluded because the current `ort-sys` prebuilt distribution used by Magika does not provide `x86_64-apple-darwin` binaries. Supporting Intel macOS would require building ONNX Runtime yourself and linking it through `ORT_LIB_LOCATION`.
 
 Before using the publish job:
 

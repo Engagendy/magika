@@ -29,9 +29,6 @@ jobs:
           - rid: win-x64
             runner: windows-latest
             lib_name: magika_dotnet.dll
-          - rid: osx-x64
-            runner: macos-15-intel
-            lib_name: libmagika_dotnet.dylib
           - rid: osx-arm64
             runner: macos-latest
             lib_name: libmagika_dotnet.dylib
