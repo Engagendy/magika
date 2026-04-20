@@ -1,0 +1,14 @@
+[package]
+name = "magika_dotnet"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "Thin native C ABI shim over the Magika Rust crate for .NET P/Invoke."
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+magika = "1.0.1"
+ort = { version = "=2.0.0-rc.11", default-features = false, features = ["std", "ndarray", "download-binaries", "tls-native", "copy-dylibs"] }
+serde_json = "1.0"
