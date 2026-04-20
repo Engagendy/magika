@@ -130,6 +130,104 @@ string json = session.IdentifyPathJson("/path/to/file");
 Console.WriteLine(json);
 ```
 
+For ASP.NET uploads, prefer `IdentifyBytesJson` when you already have the file in memory, and `IdentifyPathJson` when you save uploads to disk first.
+
+### Upload example: classify `IFormFile` in memory
+
+This is the simplest path for a typical upload endpoint:
+
+```csharp
+using System.Text.Json;
+using Magika.Native;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddSingleton<MagikaSession>();
+
+var app = builder.Build();
+
+app.MapPost("/upload", async (IFormFile file, MagikaSession magika) =>
+{
+    if (file.Length == 0)
+    {
+        return Results.BadRequest("Empty file.");
+    }
+
+    await using var stream = file.OpenReadStream();
+    using var memory = new MemoryStream();
+    await stream.CopyToAsync(memory);
+
+    string json = magika.IdentifyBytesJson(memory.ToArray());
+    using JsonDocument document = JsonDocument.Parse(json);
+
+    bool ok = document.RootElement.GetProperty("ok").GetBoolean();
+    if (!ok)
+    {
+        string error = document.RootElement.GetProperty("error").GetString() ?? "Magika failed.";
+        return Results.BadRequest(new { error });
+    }
+
+    string? label = document.RootElement.GetProperty("info").GetProperty("label").GetString();
+    string? mimeType = document.RootElement.GetProperty("info").GetProperty("mimeType").GetString();
+    double score = document.RootElement.GetProperty("score").GetDouble();
+
+    return Results.Ok(new
+    {
+        file.FileName,
+        DetectedLabel = label,
+        MimeType = mimeType,
+        Score = score
+    });
+});
+
+app.Run();
+```
+
+### Upload example: save first, then classify by path
+
+Use this when your upload flow already writes a temporary file:
+Assume the same `builder`, `app`, and `AddSingleton<MagikaSession>()` setup from the previous example.
+
+```csharp
+using System.Text.Json;
+using Magika.Native;
+
+app.MapPost("/upload-to-disk", async (IFormFile file, MagikaSession magika) =>
+{
+    if (file.Length == 0)
+    {
+        return Results.BadRequest("Empty file.");
+    }
+
+    string tempPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}_{file.FileName}");
+
+    try
+    {
+        await using (var output = File.Create(tempPath))
+        {
+            await file.CopyToAsync(output);
+        }
+
+        string json = magika.IdentifyPathJson(tempPath);
+        using JsonDocument document = JsonDocument.Parse(json);
+
+        return Results.Ok(document.RootElement.Clone());
+    }
+    finally
+    {
+        if (File.Exists(tempPath))
+        {
+            File.Delete(tempPath);
+        }
+    }
+});
+```
+
+### Notes for upload flows
+
+- Register `MagikaSession` as a singleton and reuse it across requests instead of creating a new session for every upload.
+- Use the reported `mimeType`, `label`, and `score` as validation inputs, not the browser-supplied `ContentType` alone.
+- Keep normal upload limits in place. Magika helps identify content, but it is not a replacement for size limits, antivirus scanning, or authorization checks.
+
 For NuGet packaging, place the native library under RID-specific paths such as:
 
 - `runtimes/osx-arm64/native/libmagika_dotnet.dylib`
