@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -9,7 +9,7 @@
     <PackageId>Engagendy.Magika.Native</PackageId>
     <Version>0.1.0</Version>
     <Authors>Engagendy</Authors>
-    <Description>Community .NET 9 wrapper and native assets package for the Rust Magika file type detector.</Description>
+    <Description>Community .NET 9 and .NET 10 wrapper and native assets package for the Rust Magika file type detector.</Description>
     <PackageTags>magika;file-detection;native;interop;security</PackageTags>
     <PackageProjectUrl>https://securityresearch.google/magika/</PackageProjectUrl>
     <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>

@@ -1,6 +1,6 @@
 # Magika.Native
 
-Community `.NET 9` wrapper for Magika using a thin Rust native shim.
+Community `.NET 9` and `.NET 10` wrapper for Magika using a thin Rust native shim.
 
 ## Install
 
@@ -8,19 +8,22 @@ Community `.NET 9` wrapper for Magika using a thin Rust native shim.
 dotnet add package Engagendy.Magika.Native
 ```
 
+Supported managed target frameworks:
+
+- `net9.0`
+- `net10.0`
+
 ## Package contents
 
-- Managed wrapper assembly for `.NET 9`
+- Managed wrapper assembly for `.NET 9` and `.NET 10`
 - Native runtime assets when present under `runtimes/<RID>/native/`
 
 ## Native assets layout
 
-Place the compiled shim binaries here before packing:
+Current published runtime targets:
 
 - `runtimes/osx-arm64/native/libmagika_dotnet.dylib`
-- `runtimes/osx-x64/native/libmagika_dotnet.dylib`
 - `runtimes/linux-x64/native/libmagika_dotnet.so`
-- `runtimes/linux-arm64/native/libmagika_dotnet.so`
 - `runtimes/win-x64/native/magika_dotnet.dll`
 
 ## Usage
@@ -36,6 +39,22 @@ Console.WriteLine(json);
 The native shim returns UTF-8 JSON for both path and in-memory byte classification calls.
 
 ## Common examples
+
+### Basic file-path classification
+
+```csharp
+using System.Text.Json;
+using Magika.Native;
+
+using var session = new MagikaSession();
+string json = session.IdentifyPathJson("/data/invoice.pdf");
+
+using JsonDocument document = JsonDocument.Parse(json);
+string? label = document.RootElement.GetProperty("info").GetProperty("label").GetString();
+string? mimeType = document.RootElement.GetProperty("info").GetProperty("mimeType").GetString();
+
+Console.WriteLine($"{label} / {mimeType}");
+```
 
 ### Classify bytes already in memory
 
@@ -76,6 +95,37 @@ if (result is not null && result.Ok)
 }
 ```
 
+### Reusable service wrapper
+
+```csharp
+using System.Text.Json;
+using Magika.Native;
+
+public sealed record MagikaDetection(string? Label, string? MimeType, double? Score, string RawJson);
+
+public sealed class MagikaDetector
+{
+    private readonly MagikaSession _session;
+
+    public MagikaDetector(MagikaSession session)
+    {
+        _session = session;
+    }
+
+    public MagikaDetection DetectBytes(byte[] bytes)
+    {
+        string json = _session.IdentifyBytesJson(bytes);
+        using JsonDocument document = JsonDocument.Parse(json);
+
+        return new MagikaDetection(
+            document.RootElement.GetProperty("info").GetProperty("label").GetString(),
+            document.RootElement.GetProperty("info").GetProperty("mimeType").GetString(),
+            document.RootElement.GetProperty("score").GetDouble(),
+            json);
+    }
+}
+```
+
 ### ASP.NET upload example
 
 ```csharp
@@ -100,6 +150,52 @@ app.MapPost("/upload", async (IFormFile file, MagikaSession magika) =>
 });
 
 app.Run();
+```
+
+### ASP.NET upload validation example
+
+```csharp
+using System.Text.Json;
+using Magika.Native;
+
+var allowedMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+{
+    "image/png",
+    "image/jpeg",
+    "application/pdf"
+};
+
+app.MapPost("/validate-upload", async (IFormFile file, MagikaSession magika) =>
+{
+    if (file.Length == 0)
+    {
+        return Results.BadRequest("Empty file.");
+    }
+
+    await using var stream = file.OpenReadStream();
+    using var memory = new MemoryStream();
+    await stream.CopyToAsync(memory);
+
+    string json = magika.IdentifyBytesJson(memory.ToArray());
+    using JsonDocument document = JsonDocument.Parse(json);
+
+    string? mimeType = document.RootElement.GetProperty("info").GetProperty("mimeType").GetString();
+    if (mimeType is null || !allowedMimeTypes.Contains(mimeType))
+    {
+        return Results.BadRequest(new
+        {
+            file.FileName,
+            Error = "File type is not allowed.",
+            DetectedMimeType = mimeType
+        });
+    }
+
+    return Results.Ok(new
+    {
+        file.FileName,
+        DetectedMimeType = mimeType
+    });
+});
 ```
 
 ## Notes

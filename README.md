@@ -1,6 +1,6 @@
 # magika_dotnet
 
-Thin native Rust shim over the official `magika` crate for consumption from `.NET 9` through `LibraryImport` / P/Invoke.
+Thin native Rust shim over the official `magika` crate for consumption from `.NET 9` and `.NET 10` through `LibraryImport` / P/Invoke.
 
 ## Install
 
@@ -11,6 +11,11 @@ dotnet add package Engagendy.Magika.Native
 Package page:
 
 - `https://www.nuget.org/packages/Engagendy.Magika.Native`
+
+Supported managed target frameworks:
+
+- `net9.0`
+- `net10.0`
 
 ## Exported ABI
 
@@ -99,6 +104,7 @@ Maintainer release instructions are in [RELEASING.md](./RELEASING.md).
 ## .NET usage
 
 The sample wrapper is under [dotnet/Magika.Native](./dotnet/Magika.Native).
+The NuGet package readme also includes install and usage examples directly on nuget.org.
 
 Example:
 

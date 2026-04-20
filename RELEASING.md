@@ -1,6 +1,6 @@
 # Releasing
 
-Maintainer-oriented packaging and publishing notes for `Engagendy.Magika.Native`.
+Maintainer-oriented packaging and publishing notes for `Engagendy.Magika.Native` targeting `.NET 9` and `.NET 10`.
 
 ## Package project
 
